@@ -25,7 +25,7 @@ class userClient:
         self.user_socket: ssl.SSLSocket = user_socket
         self.username = username
         self.nickname = nickname
-        self.user_socket.settimeout(10)
+        self.user_socket.settimeout(60)
         threading.Thread(target=self.listenLoop).start()
 
     def listenLoop(self):
@@ -41,11 +41,16 @@ class userClient:
                     self.connect_status = True
                 if method == "msg":
                     with msg_queue_lock:
-                        msg_queue.put(data_dict)
+                        msg_queue.put((self.nickname, data_dict))
 
         except socket.timeout:
-            print("No data received within 10 seconds, assuming the peer is offline.")
+            print("No data received within 60 seconds, assuming the peer is offline.")
             self.connect_status = False
+
+        except socket.error as e:
+            if e.errno == 10054:
+                print("远程主机强迫关闭了一个现有的连接。")
+                self.connect_status = False
 
         except Exception as e:
             print(f"Error handling client: {e}")
@@ -63,9 +68,12 @@ class userClient:
     def reOnline(self, client_socket: ssl.SSLSocket):
         self.connect_status = True
         self.user_socket = client_socket
+        response = json.dumps({"type": "init", "code": "success", "nickname": self.nickname})
+        client_socket.sendall(response.encode('utf-8'))
         threading.Thread(target=self.listenLoop).start()
         while not self.msg_queue.empty():
-            self.user_socket.sendall(self.msg_queue.get().encode('utf-8'))
+            data_dict = self.msg_queue.get()
+            self.user_socket.sendall(data_dict.encode('utf-8'))
 
     def sendHeartbeat(self):
         if self.connect_status:
@@ -94,10 +102,11 @@ class chatServer:
         self.chat_server_socket.bind(self.chat_addr)
         self.chat_server_socket.listen(100)
         threading.Thread(target=self.sendHeartbeat).start()
+        threading.Thread(target=self.sendMsg).start()
         print(f"Chat Server listening on {self.chat_addr}")
         while True:
             client_socket, addr = self.chat_server_socket.accept()
-            print(f"Connection from {addr}")
+            print(f"chat server connection from {addr}")
             self.responseInit(client_socket)
 
     def sendMsg(self):
@@ -109,12 +118,12 @@ class chatServer:
             if not msg_queue.empty():
                 with msg_queue_lock:
                     while not msg_queue.empty():
-                        data_dict = msg_queue.get()
+                        (send_nickname, data_dict) = msg_queue.get()
                         for user in self.users:
-                            if user.user_socket != data_dict["username"]:
+                            if user.username != data_dict["username"]:
                                 timestamp = datetime.now().strftime('%H:%M')
                                 data = json.dumps({"type": "msg", "msg": data_dict["msg"],
-                                                   "timestamp": timestamp, "nickname": user.nickname})
+                                                   "timestamp": timestamp, "nickname": send_nickname})
                                 user.send(data)
 
     def responseInit(self, client_socket):
@@ -154,7 +163,7 @@ class chatServer:
         while True:
             for user in self.users:
                 threading.Thread(target=user.sendHeartbeat).start()
-            time.sleep(5)
+            time.sleep(60)
 
 
 class creditServer:
