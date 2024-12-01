@@ -1,8 +1,10 @@
+import os
 import socket
 import ssl
 import threading
 import time
 import tkinter as tk
+import uuid
 from datetime import datetime
 from tkinter import messagebox
 from tkinter.scrolledtext import ScrolledText
@@ -58,9 +60,19 @@ class socketClient:
         return self.connet_status
 
 
+def _remove_from_listbox(listbox, username):
+    """Helper function to remove a user from a specific Listbox."""
+    users = list(listbox.get(0, tk.END))
+    if username in users:
+        index = users.index(username)
+        listbox.delete(index)
+
+
 class clientGui:
 
     def __init__(self):
+        self.offline_listbox: tk.Listbox = None
+        self.online_listbox: tk.Listbox = None
         self.receive_msg_loop: threading.Thread = None
         self.text_area: ScrolledText = None
         self.entry_nickname = None
@@ -77,6 +89,9 @@ class clientGui:
         self.timestamp_font = ('Arial', 8, 'normal')
         self.message_font = ('Arial', 12, 'normal')
         self.msg_queue = queue.Queue(maxsize=100)
+        self.msg_path = "msg.json"
+        self.online_users = set()
+        self.users = set()
 
     def loginInit(self, username):
         self.socket_client.secure_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -90,6 +105,11 @@ class clientGui:
         if response_data["code"] == "success":
             self.is_login = True
             self.nickname = response_data["nickname"]
+            self.msg_path = self.username + '_' + self.msg_path
+            if not os.path.exists(self.msg_path):
+                with open(self.msg_path, 'w', encoding='utf-8') as file:
+                    json.dump({}, file)
+            threading.Thread(target=self.loadLocalMsg, args=[self.msg_path]).start()
         else:
             self.is_login = False
             messagebox.showerror("服务器响应", "加载用户信息失败,请重新登录")
@@ -290,10 +310,11 @@ class clientGui:
         msg = self.message_entry.get()
         if not msg:
             return
-        data = json.dumps({"type": "msg", "msg": msg, "username": self.username})
+        timestamp = datetime.now().strftime('%H:%M')
+        data_dict = {"type": "msg", "msg": msg, "username": self.username, "timestamp": timestamp}
         self.message_entry.delete(0, tk.END)
-        self.showSelfMessage(msg)
-        self.sendMessage(data)
+        self.showSelfMessage(data_dict)
+        self.sendMessage(data_dict)
 
     def onSentEvent(self, event=None):
         self.onSendClick()
@@ -317,6 +338,40 @@ class clientGui:
 
         send_button = tk.Button(self.root, text="Send", command=self.onSendClick, width=10)
         send_button.grid(row=1, column=1, padx=5, pady=5)
+
+        # 用户列表容器
+        user_list_frame = tk.Frame(self.root)
+        user_list_frame.grid(row=0, column=2, rowspan=2, padx=5, pady=5, sticky='ns')
+
+        # 创建在线用户列表框及其滚动条
+        online_user_frame = tk.Frame(user_list_frame)
+        online_user_frame.pack(side="top", fill="both", expand=True)
+
+        online_label = tk.Label(online_user_frame, text="Online Users")
+        online_label.pack(side="top", anchor="nw")
+
+        online_scrollbar = tk.Scrollbar(online_user_frame, orient="vertical")
+        self.online_listbox = tk.Listbox(online_user_frame, yscrollcommand=online_scrollbar.set)
+        online_scrollbar.config(command=self.online_listbox.yview)
+        online_scrollbar.pack(side="right", fill="y")
+        self.online_listbox.pack(side="left", fill="both", expand=True)
+
+        # 创建离线用户列表框及其滚动条
+        offline_user_frame = tk.Frame(user_list_frame)
+        offline_user_frame.pack(side="top", fill="both", expand=True)
+
+        offline_label = tk.Label(offline_user_frame, text="Offline Users")
+        offline_label.pack(side="top", anchor="nw")
+
+        offline_scrollbar = tk.Scrollbar(offline_user_frame, orient="vertical")
+        self.offline_listbox = tk.Listbox(offline_user_frame, yscrollcommand=offline_scrollbar.set)
+        offline_scrollbar.config(command=self.offline_listbox.yview)
+        offline_scrollbar.pack(side="right", fill="y")
+        self.offline_listbox.pack(side="left", fill="both", expand=True)
+
+        # 设置行和列的权重，使得文本区域能够扩展
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
         self.root.protocol("WM_DELETE_WINDOW", self.backToLoginGui)
 
@@ -344,15 +399,17 @@ class clientGui:
     def receiveMsgLoop(self):
         if self.is_login and self.socket_client.is_connect:
             while True:
-
                 data = self.socket_client.secure_socket.recv(1024).decode("utf-8")
                 try:
                     data_dict = json.loads(data)
                     method = data_dict["type"]
                     if method == "msg":
                         self.showOthersMessage(data_dict)
+                        self.storeMsg(data, False)
                     if method == "heartbeat":
                         self.heartbeatResponse()
+                    if method == "online":
+                        self.showOnline(data_dict)
 
                 except (ConnectionAbortedError, ConnectionResetError):
                     # 将连接对象从监听列表去掉
@@ -377,8 +434,9 @@ class clientGui:
         self.text_area.yview(tk.END)  # 滚动到底部
         self.text_area.config(state='disabled')
 
-    def showSelfMessage(self, msg):
-        timestamp = datetime.now().strftime('%H:%M')
+    def showSelfMessage(self, data):
+        timestamp = data["timestamp"]
+        msg = data["msg"]
         timestamp_message = f"{self.nickname} : {timestamp}\n"
         message_text = f"{msg}\n"
         self.text_area.tag_config('self_timestamp', font=self.timestamp_font, justify='right')
@@ -390,9 +448,11 @@ class clientGui:
         self.text_area.yview(tk.END)  # 滚动到底部
         self.text_area.config(state='disabled')
 
-    def sendMessage(self, data):
+    def sendMessage(self, data: dict):
         if self.socket_client.is_connect:
-            self.socket_client.secure_socket.sendall(data.encode('utf-8'))
+
+            self.socket_client.secure_socket.sendall(json.dumps(data).encode('utf-8'))
+            self.storeMsg(data, True)
         else:
             messagebox.showerror("消息发送", "与聊天服务器断开连接\n尝试重连ing")
             self.msg_queue.put(data)
@@ -414,8 +474,40 @@ class clientGui:
             messagebox.showinfo("重新连接", "重新连接服务器失败")
         return
 
-    def storeMsg(self):
-        pass
+    def storeMsg(self, new_msg: dict, is_me: bool):
+        try:
+            with open(self.msg_path, 'r') as file:
+                chat_data = json.load(file)
+        except FileNotFoundError:
+            chat_data = {}
+        chat_data[str(uuid.uuid1())] = {"is_me": is_me, "msg": new_msg}
+        with open(self.msg_path, 'w') as f:
+            json.dump(chat_data, f, indent=4)
+
+    def loadLocalMsg(self, msg_path):
+        try:
+            with open(msg_path, 'r') as file:
+                chat_data: dict = json.load(file)
+        except FileNotFoundError:
+            chat_data = {}
+
+        for msg in chat_data.values():
+            if msg["is_me"]:
+                self.showSelfMessage(msg["msg"])
+            else:
+                self.showOthersMessage(msg["msg"])
+
+    def showOnline(self, data_dict):
+        nickname = data_dict["nickname"]
+        if data_dict["is_online"]:
+            if nickname in self.offline_listbox.get(0, tk.END):
+                _remove_from_listbox(self.offline_listbox, nickname)
+            self.online_listbox.insert(tk.END, nickname)
+        else:
+            if nickname in self.online_listbox.get(0, tk.END):
+                _remove_from_listbox(self.online_listbox, nickname)
+            self.offline_listbox.insert(tk.END, nickname)
+        self.users.add(nickname)
 
 
 if __name__ == '__main__':

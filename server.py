@@ -7,7 +7,6 @@ import json
 import time
 import uuid
 import hashlib
-from datetime import datetime
 from typing import List
 
 msg_queue = queue.Queue()
@@ -83,6 +82,13 @@ class userClient:
             except ssl.SSLZeroReturnError:
                 self.connect_status = False
 
+    def sendStatusData(self, data):
+        if self.connect_status:
+            try:
+                self.user_socket.sendall(data.encode('utf-8'))
+            except ssl.SSLZeroReturnError:
+                self.connect_status = False
+
 
 class chatServer:
     def __init__(self, ip_addr, port):
@@ -121,7 +127,7 @@ class chatServer:
                         (send_nickname, data_dict) = msg_queue.get()
                         for user in self.users:
                             if user.username != data_dict["username"]:
-                                timestamp = datetime.now().strftime('%H:%M')
+                                timestamp = data_dict["timestamp"]
                                 data = json.dumps({"type": "msg", "msg": data_dict["msg"],
                                                    "timestamp": timestamp, "nickname": send_nickname})
                                 user.send(data)
@@ -141,6 +147,7 @@ class chatServer:
                 for user_client in self.users:
                     if user_client.username == username and not user_client.connect_status:
                         user_client.reOnline(client_socket)
+                        self.sendUserStatusData(user_client)
                         return
                 try:
                     with open(self.user_data, 'r') as file:
@@ -149,21 +156,37 @@ class chatServer:
                             for user in data.values():
                                 if username == user["username"]:
                                     nickname = user["nickname"]
-                                    self.users.append(userClient(username, nickname, client_socket))
+                                    user_client = userClient(username, nickname, client_socket)
+                                    self.users.append(user_client)
                                     response = json.dumps({"type": "init", "code": "success", "nickname": nickname})
                                     client_socket.sendall(response.encode('utf-8'))
+                                    self.sendUserStatusData(user_client)
                 except json.JSONDecodeError:
                     return
+
         else:
             response = json.dumps({"type": "init", "code": "failed"})
             client_socket.sendall(response)
             return
 
     def sendHeartbeat(self):
+        online_datas = []
         while True:
             for user in self.users:
                 threading.Thread(target=user.sendHeartbeat).start()
+                online_data = json.dumps(
+                    {"type": "online", "is_online": user.connect_status, "nickname": user.nickname})
+                online_datas.append(online_data)
+            for user in self.users:
+                for data in online_datas:
+                    threading.Thread(target=user.sendStatusData, args=[data]).start()
             time.sleep(60)
+
+    def sendUserStatusData(self, online_user):
+        online_data = json.dumps(
+            {"type": "online", "is_online": online_user.connect_status, "nickname": online_user.nickname})
+        for user in self.users:
+            threading.Thread(target=user.sendStatusData, args=[online_data]).start()
 
 
 class creditServer:

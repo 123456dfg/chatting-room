@@ -77,6 +77,7 @@ class clientGui:
         self.timestamp_font = ('Arial', 8, 'normal')
         self.message_font = ('Arial', 12, 'normal')
         self.msg_queue = queue.Queue(maxsize=100)
+        self.msg_path = "msg.json"
 
     def loginInit(self, username):
         self.socket_client.secure_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
