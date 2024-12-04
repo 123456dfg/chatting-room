@@ -7,10 +7,13 @@ import json
 import time
 import uuid
 import hashlib
-from typing import List
+from typing import List, Dict, Callable
 
-msg_queue = queue.Queue()
-msg_queue_lock = threading.Lock()
+public_msg_queue = queue.Queue()
+pub_msg_queue_lock = threading.Lock()
+
+private_msg_queue = queue.Queue()
+private_msg_queue_lock = threading.Lock()
 
 
 def getHashPassword(password):
@@ -25,7 +28,15 @@ class userClient:
         self.username = username
         self.nickname = nickname
         self.user_socket.settimeout(60)
+        self.onlineCallback: Callable[[userClient], None] = None
         threading.Thread(target=self.listenLoop).start()
+
+    def getAllOnlineData(self):
+        if self.onlineCallback is not None:
+            self.onlineCallback()
+
+    def setGetAllOnlineData(self, func):
+        self.onlineCallback = func
 
     def listenLoop(self):
         try:
@@ -39,8 +50,12 @@ class userClient:
                 if method == "heartbeat":
                     self.connect_status = True
                 if method == "msg":
-                    with msg_queue_lock:
-                        msg_queue.put((self.nickname, data_dict))
+                    if data_dict["msg_type"] == "public":
+                        with pub_msg_queue_lock:
+                            public_msg_queue.put((self.nickname, data_dict))
+                    else:
+                        with private_msg_queue_lock:
+                            private_msg_queue.put(self.nickname, data_dict)  # ["recv_name"]
 
         except socket.timeout:
             print("No data received within 60 seconds, assuming the peer is offline.")
@@ -93,6 +108,7 @@ class userClient:
 class chatServer:
     def __init__(self, ip_addr, port):
         # address configure
+        self.online_datas = []
         self.chat_addr = (ip_addr, port)
 
         # ssl socket configure
@@ -108,29 +124,44 @@ class chatServer:
         self.chat_server_socket.bind(self.chat_addr)
         self.chat_server_socket.listen(100)
         threading.Thread(target=self.sendHeartbeat).start()
-        threading.Thread(target=self.sendMsg).start()
+        threading.Thread(target=self.sendPublicMsg).start()
+        threading.Thread(target=self.sendPrivateMsg).start()
         print(f"Chat Server listening on {self.chat_addr}")
         while True:
             client_socket, addr = self.chat_server_socket.accept()
             print(f"chat server connection from {addr}")
             self.responseInit(client_socket)
 
-    def sendMsg(self):
+    def sendPublicMsg(self):
         """
         用于发送来自一个客户端的消息到其他客户端
         :return:
         """
         while True:
-            if not msg_queue.empty():
-                with msg_queue_lock:
-                    while not msg_queue.empty():
-                        (send_nickname, data_dict) = msg_queue.get()
+            if not public_msg_queue.empty():
+                with pub_msg_queue_lock:
+                    while not public_msg_queue.empty():
+                        (send_nickname, data_dict) = public_msg_queue.get()
                         for user in self.users:
                             if user.username != data_dict["username"]:
                                 timestamp = data_dict["timestamp"]
-                                data = json.dumps({"type": "msg", "msg": data_dict["msg"],
+                                data = json.dumps({"type": "msg", "msg": data_dict["msg"], "msg_type": "public",
                                                    "timestamp": timestamp, "nickname": send_nickname})
                                 user.send(data)
+
+    def sendPrivateMsg(self):
+        while True:
+            if not private_msg_queue.empty():
+                with private_msg_queue_lock:
+                    while not private_msg_queue.empty():
+                        (send_nickname, data_dict) = public_msg_queue.get()
+                        for user in self.users:
+                            if user.username == data_dict["recv_name"]:
+                                timestamp = data_dict["timestamp"]
+                                data = json.dumps({"type": "msg", "msg": data_dict["msg"], "msg_type": "private",
+                                                   "timestamp": timestamp, "nickname": send_nickname})
+                                user.send(data)
+                                break
 
     def responseInit(self, client_socket):
         """
@@ -147,7 +178,7 @@ class chatServer:
                 for user_client in self.users:
                     if user_client.username == username and not user_client.connect_status:
                         user_client.reOnline(client_socket)
-                        self.sendUserStatusData(user_client)
+                        user_client.getAllOnlineData()
                         return
                 try:
                     with open(self.user_data, 'r') as file:
@@ -157,10 +188,11 @@ class chatServer:
                                 if username == user["username"]:
                                     nickname = user["nickname"]
                                     user_client = userClient(username, nickname, client_socket)
+                                    user_client.setGetAllOnlineData(self.getOnlineDatasCallback)
                                     self.users.append(user_client)
                                     response = json.dumps({"type": "init", "code": "success", "nickname": nickname})
                                     client_socket.sendall(response.encode('utf-8'))
-                                    self.sendUserStatusData(user_client)
+                                    user_client.getAllOnlineData()
                 except json.JSONDecodeError:
                     return
 
@@ -170,17 +202,27 @@ class chatServer:
             return
 
     def sendHeartbeat(self):
-        online_datas = []
         while True:
+            self.online_datas.clear()
             for user in self.users:
                 threading.Thread(target=user.sendHeartbeat).start()
                 online_data = json.dumps(
                     {"type": "online", "is_online": user.connect_status, "nickname": user.nickname})
-                online_datas.append(online_data)
+                self.online_datas.append(online_data)
             for user in self.users:
-                for data in online_datas:
+                for data in self.online_datas:
                     threading.Thread(target=user.sendStatusData, args=[data]).start()
             time.sleep(60)
+
+    def getOnlineDatasCallback(self):
+        online_datas = []
+        for user in self.users:
+            online_data = json.dumps(
+                {"type": "online", "is_online": user.connect_status, "nickname": user.nickname})
+            online_datas.append(online_data)
+        for user in self.users:
+            for data in online_datas:
+                user.sendStatusData(data)
 
     def sendUserStatusData(self, online_user):
         online_data = json.dumps(

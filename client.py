@@ -1,15 +1,15 @@
+import json
 import os
+import queue
 import socket
 import ssl
 import threading
-import time
 import tkinter as tk
 import uuid
 from datetime import datetime
 from tkinter import messagebox
 from tkinter.scrolledtext import ScrolledText
-import json
-import queue
+from typing import Callable, Dict
 
 
 class socketClient:
@@ -69,8 +69,57 @@ def _remove_from_listbox(listbox, username):
 
 
 class clientGui:
+    class PrivateGui:
+        def __init__(self, send_user, recv_name: str, gui: tk.Toplevel):
+            self.sendMessage: Callable[[Dict], None] = None
+            self.text_area = None
+            self.send_button = None
+            self.message_entry = None
+            self.send_user = send_user
+            self.recv_name = recv_name
+            self.gui = gui
+            self.showSelfMessage: Callable[[Dict, tk.scrolledtext], None] = None
+            self.showGui()
+
+        def setSendMsgFunc(self, func):
+            if self.sendMessage is None:
+                self.sendMessage = func
+
+        def setShowMsgFunc(self, func):
+            if self.showSelfMessage is None:
+                self.showSelfMessage = func
+
+        def showGui(self):
+            self.text_area = ScrolledText(self.gui, state='disabled', wrap=tk.WORD)
+            self.text_area.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+            self.message_entry = tk.Entry(self.gui, width=60)
+            self.message_entry.bind("<Return>", self.onSentPrivateEvent)
+            self.message_entry.grid(row=1, column=0, padx=5, pady=5)
+
+            self.send_button = tk.Button(self.gui, text="Send",
+                                         command=self.onPrivateSendClick, width=10)
+            self.send_button.grid(row=1, column=1, padx=5, pady=5)
+
+        def onPrivateSendClick(self):
+            msg = self.message_entry.get()
+            if not msg:
+                return
+            timestamp = datetime.now().strftime('%H:%M')
+            data_dict = {"type": "msg_private", "msg": msg, "send_username": self.send_user, "msg_type": "private",
+                         "recv_username": self.recv_name, "timestamp": timestamp}
+            self.message_entry.delete(0, tk.END)
+            if self.showSelfMessage is not None:
+                self.showSelfMessage(data_dict, self.text_area)
+            if self.sendMessage is not None:
+                self.sendMessage(data_dict)
+
+        def onSentPrivateEvent(self, event=None):
+            self.onPrivateSendClick()
 
     def __init__(self):
+        self.recv_user = None
+        self.right_click_menu = None
         self.offline_listbox: tk.Listbox = None
         self.online_listbox: tk.Listbox = None
         self.receive_msg_loop: threading.Thread = None
@@ -90,8 +139,7 @@ class clientGui:
         self.message_font = ('Arial', 12, 'normal')
         self.msg_queue = queue.Queue(maxsize=100)
         self.msg_path = "msg.json"
-        self.online_users = set()
-        self.users = set()
+        self.private_windows: Dict[str, clientGui.PrivateGui] = {}
 
     def loginInit(self, username):
         self.socket_client.secure_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -305,19 +353,23 @@ class clientGui:
         button_forget.pack(side=tk.LEFT, padx=5, pady=5)  # 增加外边距
 
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.root.quit())
+        self.entry_password.bind("<Return>", self.onLoginEvent)
 
     def onSendClick(self):
         msg = self.message_entry.get()
         if not msg:
             return
         timestamp = datetime.now().strftime('%H:%M')
-        data_dict = {"type": "msg", "msg": msg, "username": self.username, "timestamp": timestamp}
+        data_dict = {"type": "msg", "msg_type": "public", "msg": msg, "username": self.username, "timestamp": timestamp}
         self.message_entry.delete(0, tk.END)
-        self.showSelfMessage(data_dict)
+        self.showSelfMessage(data_dict, self.text_area)
         self.sendMessage(data_dict)
 
     def onSentEvent(self, event=None):
         self.onSendClick()
+
+    def onLoginEvent(self, event=None):
+        self.onLoginClick()
 
     def run(self):
         if self.root is None:
@@ -375,6 +427,23 @@ class clientGui:
 
         self.root.protocol("WM_DELETE_WINDOW", self.backToLoginGui)
 
+        self.create_right_click_menu()
+
+    def closePrivateWinEvent(self, private_window: tk.Toplevel, recv_user):
+        private_window.destroy()
+        del self.private_windows[recv_user]
+
+    def createPrivateWindow(self, send_user):
+        private_window = tk.Toplevel(self.root)
+        private_window.title(send_user + "->" + self.recv_user)
+        private_window.geometry("580x380")
+        private_window.protocol("WM_DELETE_WINDOW", lambda: self.closePrivateWinEvent(private_window, self.recv_user))
+
+        private_gui = self.PrivateGui(send_user, self.recv_user, private_window)
+        private_gui.setShowMsgFunc(self.showSelfMessage)
+        private_gui.setSendMsgFunc(self.sendMessage)
+        self.private_windows[self.recv_user] = private_gui
+
     def backToLoginGui(self):
         if self.root is not None:
             for widget in self.root.winfo_children():
@@ -388,6 +457,7 @@ class clientGui:
         if self.root is not None:
             for widget in self.root.winfo_children():
                 widget.destroy()
+
         # 关闭子窗口（如果存在）
         if self.register_sub_window and self.register_sub_window.winfo_exists():
             self.register_sub_window.destroy()
@@ -399,60 +469,72 @@ class clientGui:
     def receiveMsgLoop(self):
         if self.is_login and self.socket_client.is_connect:
             while True:
-                data = self.socket_client.secure_socket.recv(1024).decode("utf-8")
                 try:
-                    data_dict = json.loads(data)
-                    method = data_dict["type"]
-                    if method == "msg":
-                        self.showOthersMessage(data_dict)
-                        self.storeMsg(data, False)
-                    if method == "heartbeat":
-                        self.heartbeatResponse()
-                    if method == "online":
-                        self.showOnline(data_dict)
+                    data = self.socket_client.secure_socket.recv(1024).decode("utf-8")
+                    try:
+                        data_dict = json.loads(data)
+                        method = data_dict["type"]
+                        if method == "msg":
+                            if data_dict["msg_type"] == "public":
+                                self.showOthersMessage(data_dict, self.text_area)
+                            else:
+                                self.showOthersMessage(data_dict, self.findPrivateWindow(data_dict["username"]))
+                            self.storeMsg(new_msg=data_dict, is_me=False, msg_type=data_dict["msg_type"])
+                        if method == "heartbeat":
+                            self.heartbeatResponse()
+                        if method == "online":
+                            self.showOnline(data_dict)
+                    except json.JSONDecodeError:
+                        continue
 
+                except socket.error as e:
+                    if e.errno == 10053:
+                        print("连接中断")
+                        self.socket_client.disConnect()
+                    return
                 except (ConnectionAbortedError, ConnectionResetError):
                     # 将连接对象从监听列表去掉
                     print("客户端发生连接异常，与服务器端断开连接")
                     self.socket_client.disConnect()
+                    return
                 except Exception as e:
                     print(f"客户端发生了其它异常: {e}")
                     self.socket_client.disConnect()
+                    return
 
-    def showOthersMessage(self, data_dict):
+    def showOthersMessage(self, data_dict, text_area: tk.scrolledtext):
         msg = data_dict["msg"]
         nickname = data_dict["nickname"]
         timestamp = data_dict["timestamp"]
         timestamp_message = f"{nickname} : {timestamp}\n"
         message_text = f"{msg}\n"
-        self.text_area.tag_config('others_timestamp', font=self.timestamp_font, justify='left')
-        self.text_area.tag_config('others_message', font=self.message_font, lmargin1='10p',
-                                  lmargin2='10p', justify='left')
-        self.text_area.config(state='normal')
-        self.text_area.insert(tk.END, timestamp_message, 'others_timestamp')  # 插入时间戳
-        self.text_area.insert(tk.END, message_text, 'others_message')  # 插入消息
-        self.text_area.yview(tk.END)  # 滚动到底部
-        self.text_area.config(state='disabled')
+        text_area.tag_config('others_timestamp', font=self.timestamp_font, justify='left')
+        text_area.tag_config('others_message', font=self.message_font, lmargin1='10p',
+                             lmargin2='10p', justify='left')
+        text_area.config(state='normal')
+        text_area.insert(tk.END, timestamp_message, 'others_timestamp')  # 插入时间戳
+        text_area.insert(tk.END, message_text, 'others_message')  # 插入消息
+        text_area.yview(tk.END)  # 滚动到底部
+        text_area.config(state='disabled')
 
-    def showSelfMessage(self, data):
+    def showSelfMessage(self, data, text_area: tk.scrolledtext):
         timestamp = data["timestamp"]
         msg = data["msg"]
         timestamp_message = f"{self.nickname} : {timestamp}\n"
         message_text = f"{msg}\n"
-        self.text_area.tag_config('self_timestamp', font=self.timestamp_font, justify='right')
-        self.text_area.tag_config('self_message', font=self.message_font, lmargin1='10p',
-                                  lmargin2='10p', justify='right')
-        self.text_area.config(state='normal')
-        self.text_area.insert(tk.END, timestamp_message, 'self_timestamp')  # 插入时间戳
-        self.text_area.insert(tk.END, message_text, 'self_message')  # 插入消息
-        self.text_area.yview(tk.END)  # 滚动到底部
-        self.text_area.config(state='disabled')
+        text_area.tag_config('self_timestamp', font=self.timestamp_font, justify='right')
+        text_area.tag_config('self_message', font=self.message_font, lmargin1='10p',
+                             lmargin2='10p', justify='right')
+        text_area.config(state='normal')
+        text_area.insert(tk.END, timestamp_message, 'self_timestamp')  # 插入时间戳
+        text_area.insert(tk.END, message_text, 'self_message')  # 插入消息
+        text_area.yview(tk.END)  # 滚动到底部
+        text_area.config(state='disabled')
 
     def sendMessage(self, data: dict):
         if self.socket_client.is_connect:
-
             self.socket_client.secure_socket.sendall(json.dumps(data).encode('utf-8'))
-            self.storeMsg(data, True)
+            self.storeMsg(new_msg=data, is_me=True, msg_type=data["msg_type"])
         else:
             messagebox.showerror("消息发送", "与聊天服务器断开连接\n尝试重连ing")
             self.msg_queue.put(data)
@@ -474,13 +556,13 @@ class clientGui:
             messagebox.showinfo("重新连接", "重新连接服务器失败")
         return
 
-    def storeMsg(self, new_msg: dict, is_me: bool):
+    def storeMsg(self, new_msg: dict, is_me: bool, msg_type: str):
         try:
             with open(self.msg_path, 'r') as file:
                 chat_data = json.load(file)
         except FileNotFoundError:
             chat_data = {}
-        chat_data[str(uuid.uuid1())] = {"is_me": is_me, "msg": new_msg}
+        chat_data[str(uuid.uuid1())] = {"is_me": is_me, "msg_type": msg_type, "msg": new_msg}
         with open(self.msg_path, 'w') as f:
             json.dump(chat_data, f, indent=4)
 
@@ -492,22 +574,51 @@ class clientGui:
             chat_data = {}
 
         for msg in chat_data.values():
-            if msg["is_me"]:
-                self.showSelfMessage(msg["msg"])
-            else:
-                self.showOthersMessage(msg["msg"])
+            if msg["msg_type"] == "public":
+                if msg["is_me"]:
+                    self.showSelfMessage(msg["msg"], self.text_area)
+                else:
+                    self.showOthersMessage(msg["msg"], self.text_area)
 
     def showOnline(self, data_dict):
         nickname = data_dict["nickname"]
+        online_lists = self.online_listbox.get(0, tk.END)
+        offline_lists = self.offline_listbox.get(0, tk.END)
         if data_dict["is_online"]:
-            if nickname in self.offline_listbox.get(0, tk.END):
+            if nickname in offline_lists:
                 _remove_from_listbox(self.offline_listbox, nickname)
-            self.online_listbox.insert(tk.END, nickname)
+            if nickname not in online_lists:
+                self.online_listbox.insert(tk.END, nickname)
         else:
-            if nickname in self.online_listbox.get(0, tk.END):
+            if nickname in online_lists:
                 _remove_from_listbox(self.online_listbox, nickname)
-            self.offline_listbox.insert(tk.END, nickname)
-        self.users.add(nickname)
+            if nickname not in offline_lists:
+                self.offline_listbox.insert(tk.END, nickname)
+
+    def create_right_click_menu(self):
+        # 创建右键菜单
+        if self.right_click_menu is None:
+            self.right_click_menu = tk.Menu(self.root, tearoff=0)
+            self.right_click_menu.add_command(
+                label="私聊", command=lambda: self.createPrivateWindow(self.username))
+
+        self.online_listbox.bind("<Button-3>", self.show_right_click_menu)  # Right mouse button on Windows/Linux
+        self.offline_listbox.bind("<Button-3>", self.show_right_click_menu)
+
+    def show_right_click_menu(self, event):
+        widget = event.widget
+        selected_indices = widget.curselection()  # 获取当前选中的项
+
+        if selected_indices:  # 如果有项被选中
+            index = selected_indices[0]  # 假设只选择了一项
+            self.recv_user = widget.get(index)
+            try:
+                self.right_click_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                self.right_click_menu.grab_release()
+
+    def findPrivateWindow(self, username) -> tk.scrolledtext:
+        return self.private_windows[username].text_area
 
 
 if __name__ == '__main__':
