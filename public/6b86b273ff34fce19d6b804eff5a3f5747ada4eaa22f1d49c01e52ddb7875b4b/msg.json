@@ -1,0 +1,68 @@
+{
+    "b53f7d10-bde8-11ef-bb33-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "public",
+            "msg": "1",
+            "from": "1",
+            "nickname": "1",
+            "timestamp": "2024-12-19 17:07"
+        }
+    },
+    "be5670ca-bde8-11ef-8746-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "public",
+            "msg": "2",
+            "from": "2",
+            "nickname": "2",
+            "timestamp": "2024-12-19 17:07"
+        }
+    },
+    "c2448e16-bde8-11ef-a3be-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "public",
+            "msg": "2",
+            "from": "1",
+            "nickname": "1",
+            "timestamp": "2024-12-19 17:08"
+        }
+    },
+    "c398c91f-bde8-11ef-84f4-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "public",
+            "msg": "1",
+            "from": "2",
+            "nickname": "2",
+            "timestamp": "2024-12-19 17:08"
+        }
+    },
+    "c4b6f778-bde8-11ef-8ed4-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "public",
+            "msg": "2",
+            "from": "1",
+            "nickname": "1",
+            "timestamp": "2024-12-19 17:08"
+        }
+    },
+    "40b3ba44-bdf8-11ef-86f7-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "public",
+            "msg": "1",
+            "from": "1",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:59"
+        }
+    }
+}

@@ -1,0 +1,482 @@
+{
+    "fd7ea3b5-bdf7-11ef-8324-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:57"
+        }
+    },
+    "1073fe2a-bdf8-11ef-879c-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "55",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:57"
+        }
+    },
+    "15141a7a-bdf8-11ef-9a30-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "55",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:57"
+        }
+    },
+    "1cc0a365-bdf8-11ef-b0ad-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:57"
+        }
+    },
+    "1fcf85ad-bdf8-11ef-839a-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "21f7c0c8-bdf8-11ef-b613-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "221a1dc9-bdf8-11ef-bc74-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "2237c58b-bdf8-11ef-baea-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "22556d8b-bdf8-11ef-87ca-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "2568bfaa-bdf8-11ef-b955-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "25a4dd9d-bdf8-11ef-a64b-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "25e35ee5-bdf8-11ef-8773-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "261ba44e-bdf8-11ef-b839-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "26662ca8-bdf8-11ef-b7e3-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "26a3d4fe-bdf8-11ef-9af4-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "26d487cc-bdf8-11ef-962a-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "26fdab57-bdf8-11ef-9f5c-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "2724e4c8-bdf8-11ef-8ff9-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "27636e5f-bdf8-11ef-a8ad-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 18:58"
+        }
+    },
+    "42f56efa-bdf8-11ef-ad9a-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:59"
+        }
+    },
+    "4b15983a-bdf8-11ef-ac4a-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 18:59"
+        }
+    },
+    "87306b75-bdf8-11ef-886b-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:00"
+        }
+    },
+    "87c8455d-bdf8-11ef-9bf1-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:00"
+        }
+    },
+    "883a913e-bdf8-11ef-8046-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:01"
+        }
+    },
+    "8b700ca1-bdf8-11ef-9974-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "3232",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:01"
+        }
+    },
+    "b089432e-bdf8-11ef-8346-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "11",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 19:02"
+        }
+    },
+    "b3071799-bdf8-11ef-a166-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:02"
+        }
+    },
+    "44ceb147-bdf9-11ef-8722-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:06"
+        }
+    },
+    "471300bd-bdf9-11ef-9f75-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 19:06"
+        }
+    },
+    "84f41486-bdfa-11ef-b959-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:15"
+        }
+    },
+    "bc84ac82-bdfa-11ef-899d-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:15"
+        }
+    },
+    "c32e96ef-bdfa-11ef-a843-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "2",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 19:16"
+        }
+    },
+    "d6a5d2d3-bdfa-11ef-9796-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:17"
+        }
+    },
+    "df6ac1b1-bdfa-11ef-9c31-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:17"
+        }
+    },
+    "e133fbc2-bdfa-11ef-8eea-60189572b988": {
+        "is_me": true,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "2",
+            "to": "1",
+            "nickname": "2",
+            "timestamp": "2024-12-19 19:17"
+        }
+    },
+    "e4649131-bdfa-11ef-a15a-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:17"
+        }
+    },
+    "05441987-bdfb-11ef-aa10-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:18"
+        }
+    },
+    "161b5658-bdfb-11ef-89f6-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "22",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:19"
+        }
+    },
+    "1dc352eb-bdfc-11ef-8814-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "11",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:26"
+        }
+    },
+    "25d6a7d2-bdfc-11ef-9d3e-60189572b988": {
+        "is_me": false,
+        "msg": {
+            "type": "msg",
+            "msg_type": "private",
+            "msg": "11",
+            "from": "1",
+            "to": "2",
+            "nickname": "1",
+            "timestamp": "2024-12-19 19:26"
+        }
+    }
+}
