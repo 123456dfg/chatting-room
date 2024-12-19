@@ -7,12 +7,12 @@ import json
 import time
 import uuid
 import hashlib
-from typing import List, Dict, Callable
+from typing import List, Callable, Tuple
 
-public_msg_queue = queue.Queue()
+public_msg_queue: 'Queue[Tuple[str, str]]' = queue.Queue()
 pub_msg_queue_lock = threading.Lock()
 
-private_msg_queue = queue.Queue()
+private_msg_queue: 'Queue[Tuple[str, str]]' = queue.Queue()
 private_msg_queue_lock = threading.Lock()
 
 
@@ -27,8 +27,8 @@ class userClient:
         self.user_socket: ssl.SSLSocket = user_socket
         self.username = username
         self.nickname = nickname
-        self.user_socket.settimeout(60)
-        self.onlineCallback: Callable[[userClient], None] = None
+        self.user_socket.settimeout(300)
+        self.onlineCallback: Callable[[], None] = None
         threading.Thread(target=self.listenLoop).start()
 
     def getAllOnlineData(self):
@@ -52,13 +52,13 @@ class userClient:
                 if method == "msg":
                     if data_dict["msg_type"] == "public":
                         with pub_msg_queue_lock:
-                            public_msg_queue.put((self.nickname, data_dict))
+                            public_msg_queue.put((data, data_dict["from"]))
                     else:
                         with private_msg_queue_lock:
-                            private_msg_queue.put(self.nickname, data_dict)  # ["recv_name"]
+                            private_msg_queue.put((data, data_dict["to"]))
 
         except socket.timeout:
-            print("No data received within 60 seconds, assuming the peer is offline.")
+            print("No data received within 5 min, assuming the peer is offline.")
             self.connect_status = False
 
         except socket.error as e:
@@ -103,6 +103,8 @@ class userClient:
                 self.user_socket.sendall(data.encode('utf-8'))
             except ssl.SSLZeroReturnError:
                 self.connect_status = False
+            except ConnectionResetError:
+                self.connect_status = False
 
 
 class chatServer:
@@ -134,19 +136,16 @@ class chatServer:
 
     def sendPublicMsg(self):
         """
-        用于发送来自一个客户端的消息到其他客户端
+        转发一个客户端的消息到其他客户端
         :return:
         """
         while True:
             if not public_msg_queue.empty():
                 with pub_msg_queue_lock:
                     while not public_msg_queue.empty():
-                        (send_nickname, data_dict) = public_msg_queue.get()
+                        data, send_name = public_msg_queue.get()
                         for user in self.users:
-                            if user.username != data_dict["username"]:
-                                timestamp = data_dict["timestamp"]
-                                data = json.dumps({"type": "msg", "msg": data_dict["msg"], "msg_type": "public",
-                                                   "timestamp": timestamp, "nickname": send_nickname})
+                            if user.username != send_name:
                                 user.send(data)
 
     def sendPrivateMsg(self):
@@ -154,12 +153,9 @@ class chatServer:
             if not private_msg_queue.empty():
                 with private_msg_queue_lock:
                     while not private_msg_queue.empty():
-                        (send_nickname, data_dict) = public_msg_queue.get()
+                        data, target = private_msg_queue.get()
                         for user in self.users:
-                            if user.username == data_dict["recv_name"]:
-                                timestamp = data_dict["timestamp"]
-                                data = json.dumps({"type": "msg", "msg": data_dict["msg"], "msg_type": "private",
-                                                   "timestamp": timestamp, "nickname": send_nickname})
+                            if user.username == target:
                                 user.send(data)
                                 break
 
@@ -223,12 +219,6 @@ class chatServer:
         for user in self.users:
             for data in online_datas:
                 user.sendStatusData(data)
-
-    def sendUserStatusData(self, online_user):
-        online_data = json.dumps(
-            {"type": "online", "is_online": online_user.connect_status, "nickname": online_user.nickname})
-        for user in self.users:
-            threading.Thread(target=user.sendStatusData, args=[online_data]).start()
 
 
 class creditServer:
@@ -364,6 +354,16 @@ class creditServer:
         finally:
             print("Client to credit connection closed: {}".format(client.getpeername()))
             client.close()
+
+
+# TODO 文件服务器
+class FileServer:
+    pass
+
+
+# TODO 视频服务器
+class VideoServer:
+    pass
 
 
 if __name__ == '__main__':
